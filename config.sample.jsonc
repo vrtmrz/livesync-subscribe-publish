@@ -1,0 +1,20 @@
+{
+    "database": "test",
+    "passphrase": "passphrase",
+    "password": "password",
+    "url": "http://localhost:5984",
+    "username": "admin",
+    "customChunkSize": 100,
+    "minimumChunkSize": 20,
+    "obfuscatePassphrase": "passphrase",
+    "baseDir": "blog/",
+    "localDir": "sitesrc/",
+    "script": {
+        "cmd": "cmd",
+        "args": [
+            "/C",
+            "script\\test.bat"
+        ]
+    },
+    "keyfile": "flush.md"
+}

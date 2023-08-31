@@ -1,0 +1,5 @@
+config.jsonc
+sitesrc/**
+!sitesrc/.gitempty
+scripts/**
+!scripts/.gitempty

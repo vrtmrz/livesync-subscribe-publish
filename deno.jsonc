@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "dev": "deno run --watch -A main.ts"
+  },
+  "imports": {
+    "xxhash-wasm-102": "npm:xxhash-wasm@^1.0.2",
+    "crypto": "node:crypto",
+    "minimatch": "npm:minimatch"
+  }
+}
