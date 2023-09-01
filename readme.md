@@ -34,7 +34,7 @@ $ deno run -A main.ts
   "customChunkSize": 100, // keep as is.
   "minimumChunkSize": 20, // keep as is.
   "obfuscatePassphrase": "passphrase", // If you are obfuscating the path, please set the same as a passphrase. If you are not using it, leave it empty.
-  "baseDir": "blog/", // `blog` folder of your vault would be subscribed.
+  "subscribeDir": "blog/", // `blog` folder of your vault would be subscribed.
   "localDir": "sitesrc/", // Subscribed files will be stored into `sitesrc/`. Please use posix format.
   "script": {
     "cmd": "cmd", // a programme which you want to run
@@ -44,6 +44,12 @@ $ deno run -A main.ts
       "script\\test.bat"
     ]
   },
-  "keyfile": "flush.md" // `cmd` would be run when `flush` has been modified.
+  "resultDir": "publishresult/", // Script output will be uploaded to your vault under `publishresult`
+  "keyfile": "flush.md", // `cmd` would be run when `flush` has been modified.
+  "statDir": "dat/" // Status file dir.
 }
 ```
+
+
+## Tips
+[obsidian-export](https://github.com/zoni/obsidian-export) and [Hugo](https://gohugo.io/) could be nice friends. I will make an integrated sample.

@@ -4,7 +4,7 @@ import { LiveSyncPublishOptions } from "./types.ts";
 if (import.meta.main) {
   try {
     const opt = JSON.parse(Deno.readTextFileSync("config.jsonc")) as LiveSyncPublishOptions;
-    if (initializeDFM(opt)) {
+    if (await initializeDFM(opt)) {
       await fetchFiles();
       beginWatch();
     }
