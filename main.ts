@@ -1,9 +1,10 @@
 import { beginWatch, fetchFiles, initializeDFM } from "./watcher.ts";
 import { LiveSyncPublishOptions } from "./types.ts";
 import { serveDir, serveListener } from "./deps.ts";
+const configFilePath = Deno.env.get("LSSP_CONFIG_PATH") ?? "./config.jsonc";
 
 let fsRoot = "";
-async function handler(req: Request): Promise<Response> {Í
+async function handler(req: Request): Promise<Response> {
   return await serveDir(req, {
     fsRoot: fsRoot,
   })
@@ -12,7 +13,8 @@ async function handler(req: Request): Promise<Response> {Í
 
 if (import.meta.main) {
   try {
-    const opt = JSON.parse(Deno.readTextFileSync("config.jsonc")) as LiveSyncPublishOptions;
+    console.log(`LiveSync Subscribe Publisher starting with ${configFilePath}`);
+    const opt = JSON.parse(Deno.readTextFileSync(configFilePath)) as LiveSyncPublishOptions;
     if (await initializeDFM(opt)) {
       await fetchFiles();
       beginWatch();

@@ -16,6 +16,14 @@ let _stat = { ...STATUS_DEFAULT };
 
 let reportCounter = 0;
 
+async function mkdirForce(dirName: string) {
+    try {
+        await Deno.mkdir(dirName, { recursive: true });
+    } catch (ex) {
+        console.log(ex);
+    }
+}
+
 export async function initializeDFM(opt: LiveSyncPublishOptions) {
     try {
         if (opt.baseDir) _subscribeDir = opt.baseDir;
@@ -25,6 +33,8 @@ export async function initializeDFM(opt: LiveSyncPublishOptions) {
         _script = opt.script;
         _statDir = opt.statDir;
         _resultDir = opt.resultDir;
+        await mkdirForce(_localDir);
+        await mkdirForce(_statDir);
         const dfm = new DirectFileManipulator(opt);
         man = dfm;
         await loadStatus();
