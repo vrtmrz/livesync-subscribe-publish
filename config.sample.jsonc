@@ -7,7 +7,7 @@
     "customChunkSize": 100,
     "minimumChunkSize": 20,
     "obfuscatePassphrase": "passphrase",
-    "baseDir": "", //obsolute props
+    "baseDir": "",
     "subscribeDir": "blog/",
     "localDir": "sitesrc/",
     "script": {
@@ -19,5 +19,7 @@
     },
     "resultDir": "publishresult/",
     "keyfile": "flush.md",
-    "statDir": "dat/"
+    "statDir": "sitesrc/dat/",
+    "publishDir": "/app/hugosite/public",
+    "publishPort": 8080
 }

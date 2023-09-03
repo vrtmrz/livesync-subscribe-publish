@@ -11,6 +11,8 @@ export type LiveSyncPublishOptions = DirectFileManipulatorOptions & {
     keyfile: string;
     script: ScriptDef;
     statDir: string;
+    publishDir: string;
+    publishPort: number;
 }
 
 export type StatusInfo = {

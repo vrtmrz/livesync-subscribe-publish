@@ -3,3 +3,4 @@ sitesrc/**
 !sitesrc/.gitempty
 scripts/**
 !scripts/.gitempty
+!**/.gitempty

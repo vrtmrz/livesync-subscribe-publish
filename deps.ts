@@ -1,6 +1,8 @@
 export { decode, encode } from "https://deno.land/std@0.200.0/encoding/base64.ts";
 export { posix, win32 } from "https://deno.land/std@0.200.0/path/mod.ts";
 export { walk } from "https://deno.land/std@0.200.0/fs/mod.ts";
+export { serveListener } from "https://deno.land/std@0.200.0/http/server.ts";
+export { serveDir } from "https://deno.land/std@0.200.0/http/file_server.ts";
 
 import { DirectFileManipulator, } from "./lib/src/DirectFileManipulator.ts";
 export type { DirectFileManipulatorOptions, MetaEntry, ReadyEntry } from "./lib/src/DirectFileManipulator.ts";
