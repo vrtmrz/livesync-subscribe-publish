@@ -9,8 +9,10 @@ a.k.a. (Currently) Subscribe only Filesystem-LiveSync.
 ## Prerequisite
 
 - Deno required.
-- This should be running near or at the same place where your CouchDB has been hosted.
+- If you want to use watch mode (default), this should be running near or at the same place where your CouchDB has been hosted.
   Probably uses a lot of traffic.
+- If you are going to USE API update mode, traffic would be a more reasonable amount.
+  Unset `keyfile` and set `apiPath` please.
 
 ## How to run
 
@@ -46,10 +48,14 @@ $ deno run -A main.ts
   },
   "resultDir": "publishresult/", // Script output will be uploaded to your vault under `publishresult`
   "keyfile": "flush.md", // `cmd` would be run when `flush` has been modified.
-  "statDir": "dat/" // Status file dir.
+  "statDir": "dat/", // Status file dir.
+  "publishDir": "../hugosite/public", // Hosting dir
+  "publishPort": 8080, // Hosting port for API and/or static files
+  "apiPath":"" // API Path
 }
 ```
 
 
 ## Tips
-[obsidian-export](https://github.com/zoni/obsidian-export) and [Hugo](https://gohugo.io/) could be nice friends. I will make an integrated sample.
+[obsidian-export](https://github.com/zoni/obsidian-export) and [Hugo](https://gohugo.io/) could be nice friends.  
+[LiveSync-Subscribe-Publish-Kit](https://github.com/vrtmrz/livesync-subscribe-publish-kit) is the integrated sample.

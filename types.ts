@@ -13,6 +13,7 @@ export type LiveSyncPublishOptions = DirectFileManipulatorOptions & {
     statDir: string;
     publishDir: string;
     publishPort: number;
+    apiPath: string;
 }
 
 export type StatusInfo = {

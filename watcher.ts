@@ -172,7 +172,7 @@ async function unlinkFile(doc: MetaEntry | ReadyEntry) {
         await Deno.remove(localPath);
     }
 }
-export async function fetchFiles(isDryRun = false, isPurgeUnused = false) {
+export async function fetchFiles(isDryRun = false, isPurgeUnused = false): Promise<string> {
     const report = [] as string[];
     const startDate = new Date();
     const dateStr = startDate.toLocaleString();
@@ -189,8 +189,8 @@ export async function fetchFiles(isDryRun = false, isPurgeUnused = false) {
     const header = `FullScan${msgDryRun}${msgPurgeUnused}:`;
     LLogger(`${header} Begin at ${dateStr}`);
     if (!isDryRun && _stat && _stat.lastSeq != "now") {
-        LLogger("`Already fully synchronised once, finish!");
-        return;
+        LLogger("Already fully synchronised once, finish!");
+        return report.join("\n");
     }
     LLogger(`${header} Enumerating all files on the database`);
     const fileE = man.enumerateAllNormalDocs({ metaOnly: true });
@@ -262,10 +262,13 @@ export async function fetchFiles(isDryRun = false, isPurgeUnused = false) {
         LLogger(`${header} ${efile}`)
     }
     LLogger(`--End of the report--`);
-    await uploadDoc(outFilename, "```\n" + report.join("\n") + "\n```");
+    if (_resultDir != "") {
+        await uploadDoc(outFilename, "```\n" + report.join("\n") + "\n```");
+    }
     if (fetched && !isDryRun) {
         runScript().then(() => {/* Fire and forget */ });
     }
+    return report.join("\n");
 }
 async function uploadDoc(filename: string, note: string) {
     const mtime = Date.now();
@@ -281,9 +284,9 @@ async function uploadDoc(filename: string, note: string) {
         Logger(ex);
     }
 }
-async function runScript() {
-    if (_script.cmd == "") return;
-
+export async function runScript(): Promise<string> {
+    if (_script.cmd == "") return "";
+    const result = [];
     try {
         const startDate = new Date();
         const dateStr = startDate.toLocaleString();
@@ -302,7 +305,6 @@ async function runScript() {
         const end = performance.now();
         const stdoutText = new TextDecoder().decode(stdout);
         const stderrText = new TextDecoder().decode(stderr);
-        const result = [];
         result.push(`# Script process: ${dateStr}\n`);
         result.push(`command: \`${scriptLineMessage}\``);
         if (code === 0) {
@@ -315,42 +317,60 @@ async function runScript() {
             Logger(stderrText, LOG_LEVEL_NOTICE);
         }
         result.push(`\n- Spent ${Math.ceil(end - start) / 1000} ms`);
-        result.push("## STDOUT\n")
+        result.push("## --STDOUT--\n")
         result.push("```\n" + stdoutText + "\n```");
-        result.push("## STDERR-------------------\n")
+        result.push("## --STDERR--n")
         result.push("```\n" + stderrText + "\n```");
         const strResult = result.join("\n");
-        await uploadDoc(outFilename, strResult);
+        if (_resultDir != "") {
+            await uploadDoc(outFilename, strResult);
+        }
+        return strResult;
+    } catch (ex) {
+        Logger(ex);
+        result.push(JSON.stringify(ex, null, 2));
+        return result.join("\n");
+    }
+
+}
+
+async function processIncomingDoc(doc: ReadyEntry) {
+    try {
+        if (isTargetFile(doc.path)) {
+            if (isKeyFile(doc.path)) {
+                const docData = getDocData(doc.data);
+                const isCommandRebuild = docData == "rebuild";
+                const isCommandDryRun = docData == "dryrun";
+                const isCommandPurge = docData == "purge";
+                if (isCommandRebuild || isCommandDryRun || isCommandPurge) {
+                    Logger(`Command detected!: ${docData}`);
+                    if (!isCommandDryRun) _stat.lastSeq = "now";
+                    await fetchFiles(isCommandDryRun, isCommandPurge);
+                } else {
+                    runScript().then(() => {/* Fire and forget */ });
+                }
+            } else {
+                await fetchFile(doc);
+            }
+        }
+        _stat.lastSeq = man.since;
+        await saveStatus();
     } catch (ex) {
         Logger(ex);
     }
+}
+export async function followUpdates() {
+    man.since = _stat.lastSeq;
+    const lastSeq = await man.followUpdates(processIncomingDoc);
+    _stat.lastSeq = lastSeq;
+    await saveStatus()
 
 }
 export function beginWatch() {
     man.since = _stat.lastSeq;
-    man.beginWatch(async (doc) => {
-        try {
-            if (isTargetFile(doc.path)) {
-                if (isKeyFile(doc.path)) {
-                    const docData = getDocData(doc.data);
-                    const isCommandRebuild = docData == "rebuild";
-                    const isCommandDryRun = docData == "dryrun";
-                    const isCommandPurge = docData == "purge";
-                    if (isCommandRebuild || isCommandDryRun || isCommandPurge) {
-                        Logger(`Command detected!: ${docData}`);
-                        if (!isCommandDryRun) _stat.lastSeq = "now";
-                        await fetchFiles(isCommandDryRun, isCommandPurge);
-                    } else {
-                        runScript().then(() => {/* Fire and forget */ });
-                    }
-                } else {
-                    await fetchFile(doc);
-                }
-            }
-            _stat.lastSeq = man.since;
-            await saveStatus();
-        } catch (ex) {
-            Logger(ex);
-        }
-    })
+    if (!_keyfile) {
+        Logger(`Could not watch without keyfile`, LOG_LEVEL_NOTICE);
+        return;
+    }
+    man.beginWatch(processIncomingDoc)
 }

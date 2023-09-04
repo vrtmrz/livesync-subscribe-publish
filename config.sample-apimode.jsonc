@@ -18,9 +18,9 @@
         ]
     },
     "resultDir": "publishresult/",
-    "keyfile": "flush.md",
+    "keyfile": "",
     "statDir": "sitesrc/dat/",
     "publishDir": "/app/hugosite/public",
     "publishPort": 8080,
-    "apiPath":""
+    "apiPath":"/api"
 }
