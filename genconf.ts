@@ -8,7 +8,7 @@ function applyEnv<T extends Record<string, Record<string, any>>>(obj: T, prefix:
             ret[key] = applyEnv(ret[key], envKey);
         } else {
             const envValue = Deno.env.get(envKey);
-            if (!envValue) continue;
+            if (envValue===undefined) continue;
             if (!Array.isArray(ret[key])) {
                 ret[key] = envValue;
             } else {
