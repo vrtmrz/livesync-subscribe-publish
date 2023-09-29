@@ -22,5 +22,6 @@
     "statDir": "sitesrc/dat/",
     "publishDir": "/app/hugosite/public",
     "publishPort": 8080,
-    "apiPath":"/api"
+    "apiPath": "/api",
+    "useV1": false
 }

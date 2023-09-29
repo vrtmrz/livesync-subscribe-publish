@@ -52,6 +52,7 @@ $ deno run -A main.ts
   "publishDir": "../hugosite/public", // Hosting dir
   "publishPort": 8080, // Hosting port for API and/or static files
   "apiPath":"" // API Path
+  "useV1":false // If you are using V1 in Self-hosted LiveSync, you have to set this to true.
 }
 ```
 
