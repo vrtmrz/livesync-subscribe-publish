@@ -1,6 +1,7 @@
 config.jsonc
 sitesrc/**
-!sitesrc/.gitempty
 scripts/**
-!scripts/.gitempty
-!**/.gitempty
+dat/*
+!.gitempty
+*.private.jsonc
+*.env

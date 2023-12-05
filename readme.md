@@ -4,15 +4,13 @@ A static-site-generator runner for Self-hosted LiveSync.
 
 Subscribe to the changes of the remote database of Self-hosted LiveSync, fetch them on the local filesystem, and run the script if the specific file has been changed!
 
-a.k.a. (Currently) Subscribe only Filesystem-LiveSync.
-
 ## Prerequisite
 
 - Deno required.
 - If you want to use watch mode (default), this should be running near or at the same place where your CouchDB has been hosted.
   Probably uses a lot of traffic.
 - If you are going to USE API update mode, traffic would be a more reasonable amount.
-  Unset `keyfile` and set `apiPath` please.
+  Unset `keyfile` and set `apiPath`, please.
 
 ## How to run
 
@@ -52,9 +50,17 @@ $ deno run -A main.ts
   "publishDir": "../hugosite/public", // Hosting dir
   "publishPort": 8080, // Hosting port for API and/or static files
   "apiPath":"" // API Path
-  "useV1":false // If you are using V1 in Self-hosted LiveSync, you have to set this to true.
 }
 ```
+
+## API Endpoints
+- `{apiPath}/menu`: Shows the menu
+- `{apiPath}/update`: Fetch all changed files since the previous fetching.
+- `{apiPath}/run`: Run the script
+- `{apiPath}/build`: Update and Run.
+- `{apiPath}/rebuild`: Fetch all again and rerun the script.
+- `{apiPath}/forcebuild`: Rebuild force.
+- `{apiPath}/resetseq`: Reset the fetching checkpoint to let us "fetch" again from the beginning.
 
 
 ## Tips

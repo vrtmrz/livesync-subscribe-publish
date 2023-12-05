@@ -1,7 +1,8 @@
-import { DirectFileManipulator, getDocData, decode, win32, Logger, LOG_LEVEL_INFO, walk } from "./deps.ts";
+import { DirectFileManipulator, getDocData, win32, Logger, LOG_LEVEL_INFO, walk } from "./deps.ts";
 import { LiveSyncPublishOptions, STATUS_DEFAULT, ScriptDef } from "./types.ts";
 import { posix, type FilePathWithPrefix, type MetaEntry, type ReadyEntry } from "./deps.ts";
-import { LOG_LEVEL, LOG_LEVEL_NOTICE, LOG_LEVEL_VERBOSE } from "./lib/src/types.ts";
+import { LOG_LEVEL, LOG_LEVEL_NOTICE, LOG_LEVEL_VERBOSE, MILSTONE_DOCID } from "./lib/src/types.ts";
+import { decodeBinary } from "./lib/src/strbin.ts";
 
 
 let man: DirectFileManipulator;
@@ -144,22 +145,27 @@ async function fetchFile(doc: MetaEntry | ReadyEntry) {
     if (isReadyEntry(doc)) {
         Logger(`FetchFile: ${docPath} Loaded`);
         const localPath = remotePath2LocalPath(doc.path);
-        const content = getDocData(doc.data);
+
         try {
             const dirName = getDirName(localPath);
             await Deno.mkdir(dirName, { recursive: true });
         } catch (ex) {
-            console.log(ex);
+            Logger(ex, LOG_LEVEL_VERBOSE);
         }
-        if (doc.type == "newnote") {
-            Logger(`FetchFile: ${docPath} fetched (bin)  :${doc.path}`)
-            await Deno.writeFile(localPath, decode(content));
-        } else if (doc.type == "plain") {
-            Logger(`FetchFile: ${docPath} fetched (Plain):${doc.path}`)
-            await Deno.writeTextFile(localPath, content);
-        } else {
-            Logger(`Fetch failed: ${docPath} something went wrong`);
-            Logger(doc);
+        try {
+            if (doc.type == "newnote") {
+                Logger(`FetchFile: ${docPath} fetched (bin)  :${doc.path}`)
+                await Deno.writeFile(localPath, new Uint8Array(decodeBinary(doc.data)));
+            } else if (doc.type == "plain") {
+                Logger(`FetchFile: ${docPath} fetched (Plain):${doc.path}`)
+                const content = getDocData(doc.data);
+                await Deno.writeTextFile(localPath, content);
+            } else {
+                Logger(`Fetch failed: ${docPath} something went wrong`);
+            }
+        } catch (ex) {
+            Logger(ex, LOG_LEVEL_VERBOSE);
+            throw ex;
         }
     } else {
         Logger(`Fetch failed:${doc.path}`)
@@ -172,7 +178,7 @@ async function unlinkFile(doc: MetaEntry | ReadyEntry) {
         await Deno.remove(localPath);
     }
 }
-export async function fetchFiles(isDryRun = false, isPurgeUnused = false): Promise<string> {
+export async function fetchFiles(isDryRun = false, isPurgeUnused = false, force = false): Promise<string> {
     const report = [] as string[];
     const startDate = new Date();
     const dateStr = startDate.toLocaleString();
@@ -188,7 +194,7 @@ export async function fetchFiles(isDryRun = false, isPurgeUnused = false): Promi
     const msgPurgeUnused = isPurgeUnused ? " (Purge unused)" : "";
     const header = `FullScan${msgDryRun}${msgPurgeUnused}:`;
     LLogger(`${header} Begin at ${dateStr}`);
-    if (!isDryRun && _stat && _stat.lastSeq != "now") {
+    if (!force && !isDryRun && _stat && _stat.lastSeq != "now" && _stat.lastSeq != "") {
         LLogger("Already fully synchronised once, finish!");
         return report.join("\n");
     }
@@ -227,6 +233,7 @@ export async function fetchFiles(isDryRun = false, isPurgeUnused = false): Promi
                     }
                 }
             } catch (ex) {
+                console.dir(ex);
                 LLogger(`${header} Something happened at processing ${doc.path}`)
             }
             const actualLocalPath = localPathToActualPath(localPath);
@@ -333,6 +340,9 @@ export async function runScript(): Promise<string> {
     }
 
 }
+function checkIsInterested(doc: MetaEntry) {
+    return isTargetFile(doc.path);
+}
 
 async function processIncomingDoc(doc: ReadyEntry) {
     try {
@@ -353,24 +363,62 @@ async function processIncomingDoc(doc: ReadyEntry) {
                 await fetchFile(doc);
             }
         }
-        _stat.lastSeq = man.since;
-        await saveStatus();
+        await updateStat();
     } catch (ex) {
         Logger(ex);
     }
 }
+function _getKey(key: string) {
+    return `LSP-${_localDir}-${key}`;
+}
+function setSetting(key: string, value: string) {
+    return localStorage.setItem(_getKey(key), value);
+}
+function getSetting(key: string) {
+    return localStorage.getItem(_getKey(key));
+}
+async function loadPreviousSeq() {
+    const w = await man._fetchJson([MILSTONE_DOCID], {}, "get", {}) as Record<string, any>;
+    const created = w.created;
+    if (getSetting("remote-created") !== `${created}`) {
+        man.since = "";
+        Logger(`Remote database looks like rebuilt. fetch from the first again.`, LOG_LEVEL_NOTICE);
+        setSetting("remote-created", `${created}`);
+        await updateStat();
+    } else {
+        man.since = _stat.lastSeq;
+        Logger(`Watch starting from ${man.since}`, LOG_LEVEL_NOTICE);
+    }
+}
+
+async function updateStat() {
+    const lastSeq = _stat.lastSeq;
+    if (man.since != "now") _stat.lastSeq = man.since;
+    if (lastSeq != _stat.lastSeq) {
+        await saveStatus();
+    }
+}
 export async function followUpdates() {
-    man.since = _stat.lastSeq;
-    const lastSeq = await man.followUpdates(processIncomingDoc);
+    await loadPreviousSeq();
+    const lastSeq = await man.followUpdates(processIncomingDoc, checkIsInterested);
     _stat.lastSeq = lastSeq;
     await saveStatus()
 
 }
-export function beginWatch() {
-    man.since = _stat.lastSeq;
+export async function beginWatch() {
+    await loadPreviousSeq();
     if (!_keyfile) {
         Logger(`Could not watch without keyfile`, LOG_LEVEL_NOTICE);
         return;
     }
-    man.beginWatch(processIncomingDoc)
+    man.beginWatch(processIncomingDoc, checkIsInterested)
+}
+
+
+export async function resetSequence(newSeq?: string): Promise<string> {
+    localStorage.clear();
+    _stat.lastSeq = newSeq ?? "";
+    man.since = newSeq ?? "";
+    await saveStatus();
+    return "OK";
 }
